@@ -46,3 +46,7 @@ void Brains::loop()
 					}
 			}
 	}
+
+boolean Brains::isFridgeOn(){
+		return (myMotorState==HIGH);
+}

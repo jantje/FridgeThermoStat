@@ -19,6 +19,7 @@ public:
 		Brains (uint8_t relaisPin,uint16_t desiredcentiTemp);
 		void setup();
 		void loop();
+		boolean isFridgeOn();
 	};
 
 #pragma once
