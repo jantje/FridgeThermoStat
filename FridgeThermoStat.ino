@@ -7,7 +7,7 @@
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
-#include "private.h" //file containing your ssid and password
+#include "private.h" //file containing your ssid password and OTApassword
 //end of OTA stuff
 
 #define tempPin 100
@@ -29,7 +29,7 @@ void setup()
 		Serial.begin(115200);
 		delay(2000); //wait so serial monitor can catch up
 		Serial.println("starting fridge app");
-		
+
 		WiFi.mode(WIFI_STA);
 		  WiFi.begin(ssid, password);
 		  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
@@ -39,13 +39,13 @@ void setup()
 		  }
 
 		  // Port defaults to 8266
-		  // ArduinoOTA.setPort(8266);
+		  ArduinoOTA.setPort(8266);
 
 		  // Hostname defaults to esp8266-[ChipID]
-		  ArduinoOTA.setHostname("frigo");
+		 // ArduinoOTA.setHostname("frigo");
 
 		  // No authentication by default
-		  // ArduinoOTA.setPassword("admin");
+		  ArduinoOTA.setPassword(OTApassword);
 
 		  // Password can be set with it's md5 value as well
 		  // MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
@@ -79,11 +79,11 @@ void setup()
 		  Serial.println("Ready");
 		  Serial.print("IP address: ");
 		  Serial.println(WiFi.localIP());
-		  
-		
-		
-		
-		
+
+
+
+
+
 		loopMillis = millis();
 		myTempSensor.setup();
 		myBrains.setup();
@@ -93,6 +93,7 @@ void setup()
 void loop()
 	{
 		loopMillis = millis();
+		ArduinoOTA.handle();
 		myTempSensor.loop();
 		myBrains.loop();
 		static uint32_t last_log = 0;
@@ -103,7 +104,7 @@ void loop()
 				Serial.print(loopMillis);
 				Serial.print("; temp ");
 				Serial.print(myTempSensor.getCentiCelsius());
-				Serial.print(" centi celcius; fridge is ");
+				Serial.print(" centi celcius; fridge 3 is ");
 				if (myBrains.isFridgeOn())
 					{
 						Serial.println("on.");
