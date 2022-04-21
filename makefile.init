@@ -3,4 +3,4 @@
 uploadViaNetworkWithoutBuild:
 	@echo trying to OTA upload without build
 	@echo "set environment variable OTAPWD to your password in windows->preferences->C/C++->build->environment"
-	"${tools.esptool.network_cmd}" -I "${runtime.platform.path}/tools/espota.py" -i "192.168.1.233" -p 8266 --auth="${OTAPWD}" -f "${build.path}/${build.project_name}.bin"
+	"${tools.esptool.network_cmd}" -I "${runtime.platform.path}/tools/espota.py" -i 192.168.1.233 -p 8266 --auth=${OTAPWD} -f "${build.path}/${build.project_name}.bin"

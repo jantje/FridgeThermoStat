@@ -6,13 +6,14 @@
  */
 
 #include "Brains.h"
-#include "TempMeterTemperatureSensetiveResistor.h"
-
-extern TempMeterTemperatureSensetiveResistor myTempSensor;
+#include "TempMeterInterface.h"
 
 
 
-Brains::Brains(uint8_t relaisPin,uint16_t desiredcentiTemp)
+
+
+Brains::Brains(uint8_t relaisPin,uint16_t desiredcentiTemp,TempMeterInterface &tempSensor):
+myTempSensor(tempSensor)
 	{
 		myRelaisPin = relaisPin;
 		myMotorState = LOW;

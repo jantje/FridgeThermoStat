@@ -1,6 +1,6 @@
 #include "Arduino.h"
-#include "TempMeterTemperatureSensetiveResistor.h"
 #include "Brains.h"
+#include "TempMeter18b20.h"
 
 //OTA stuff
 #include <ESP8266WiFi.h>
@@ -20,98 +20,105 @@ uint32_t loopMillis;
 
 
 
-TempMeterTemperatureSensetiveResistor myTempSensor = TempMeterTemperatureSensetiveResistor(tempPin, tempMultiplyer, tempOfset);
-Brains myBrains = Brains(relaisPin, DESIRED_CENTI_TEMP);
 
-void setup()
-	{
+// Data wire is plugged into pin 2 on the Arduino
+#define ONE_WIRE_BUS 2
+/********************************************************************/
+// Setup a oneWire instance to communicate with any OneWire devices
+// (not just Maxim/Dallas temperature ICs)
+OneWire oneWire(ONE_WIRE_BUS);
+/********************************************************************/
 
-		Serial.begin(115200);
-		delay(2000); //wait so serial monitor can catch up
-		Serial.println("starting fridge app");
+/********************************************************************/
+TempMeter18b20 myTempSensor = TempMeter18b20(&oneWire);
+Brains myBrains = Brains(relaisPin, DESIRED_CENTI_TEMP,myTempSensor);
+void setup() {
 
-		WiFi.mode(WIFI_STA);
-		  WiFi.begin(ssid, password);
-		  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-		    Serial.println("Connection Failed! Rebooting...");
-		    delay(5000);
-		    ESP.restart();
-		  }
+    Serial.begin(115200);
+    delay(2000); //wait so serial monitor can catch up
+    Serial.println("starting fridge app");
 
-		  // Port defaults to 8266
-		  ArduinoOTA.setPort(8266);
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid, password);
+    while (WiFi.waitForConnectResult() != WL_CONNECTED) {
+        Serial.println("Connection Failed! Rebooting...");
+        delay(5000);
+        ESP.restart();
+    }
 
-		  // Hostname defaults to esp8266-[ChipID]
-		 // ArduinoOTA.setHostname("frigo");
+    // Port defaults to 8266
+    ArduinoOTA.setPort(8266);
 
-		  // No authentication by default
-		  ArduinoOTA.setPassword(OTApassword);
+    // Hostname defaults to esp8266-[ChipID]
+    // ArduinoOTA.setHostname("frigo");
 
-		  // Password can be set with it's md5 value as well
-		  // MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
-		  // ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
+    // No authentication by default
+    ArduinoOTA.setPassword("frig0Werk");
 
-		  ArduinoOTA.onStart([]() {
-		    String type;
-		    if (ArduinoOTA.getCommand() == U_FLASH)
-		      type = "sketch";
-		    else // U_SPIFFS
-		      type = "filesystem";
+    // Password can be set with it's md5 value as well
+    // MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
+    // ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
 
-		    // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-		    Serial.println("Start updating " + type);
-		  });
-		  ArduinoOTA.onEnd([]() {
-		    Serial.println("\nEnd");
-		  });
-		  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-		    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-		  });
-		  ArduinoOTA.onError([](ota_error_t error) {
-		    Serial.printf("Error[%u]: ", error);
-		    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-		    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-		    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-		    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-		    else if (error == OTA_END_ERROR) Serial.println("End Failed");
-		  });
-		  ArduinoOTA.begin();
-		  Serial.println("Ready");
-		  Serial.print("IP address: ");
-		  Serial.println(WiFi.localIP());
+    ArduinoOTA.onStart([]() {
+        String type;
+        if (ArduinoOTA.getCommand() == U_FLASH)
+            type = "sketch";
+        else
+            // U_SPIFFS
+            type = "filesystem";
 
+        // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+        Serial.println("Start updating " + type);
+    });
+    ArduinoOTA.onEnd([]() {
+        Serial.println("\nEnd");
+    });
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+        Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+    });
+    ArduinoOTA.onError([](ota_error_t error) {
+        Serial.printf("Error[%u]: ", error);
+        if (error == OTA_AUTH_ERROR)
+            Serial.println("Auth Failed");
+        else if (error == OTA_BEGIN_ERROR)
+            Serial.println("Begin Failed");
+        else if (error == OTA_CONNECT_ERROR)
+            Serial.println("Connect Failed");
+        else if (error == OTA_RECEIVE_ERROR)
+            Serial.println("Receive Failed");
+        else if (error == OTA_END_ERROR)
+            Serial.println("End Failed");
+    });
+    ArduinoOTA.begin();
+    Serial.println("Ready");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
 
+    loopMillis = millis();
 
-
-
-		loopMillis = millis();
-		myTempSensor.setup();
-		myBrains.setup();
-	}
+    myTempSensor.setup();
+    myBrains.setup();
+}
 
 // The loop function is called in an endless loop
-void loop()
-	{
-		loopMillis = millis();
-		ArduinoOTA.handle();
-		myTempSensor.loop();
-		myBrains.loop();
-		static uint32_t last_log = 0;
-		if (loopMillis - last_log > 10000)
-			{
-				last_log = loopMillis;
-				Serial.print("millis: ");
-				Serial.print(loopMillis);
-				Serial.print("; temp ");
-				Serial.print(myTempSensor.getCentiCelsius());
-				Serial.print(" centi celcius; fridge 3 is ");
-				if (myBrains.isFridgeOn())
-					{
-						Serial.println("on.");
-					} else
-					{
-						Serial.println("off.");
-					}
-			}
+void loop() {
+    loopMillis = millis();
+    ArduinoOTA.handle();
+    myTempSensor.loop();
+    myBrains.loop();
+    static uint32_t last_log = 0;
+    if (loopMillis - last_log > 10000) {
+        last_log = loopMillis;
+        Serial.print("millis: ");
+        Serial.print(loopMillis);
+        Serial.print("; temp ");
+        Serial.print(myTempSensor.getCentiCelsius());
+        Serial.print(" centi celcius; fridge 4 is ");
+        if (myBrains.isFridgeOn()) {
+            Serial.println("on.");
+        } else {
+            Serial.println("off.");
+        }
+    }
 
-	}
+}
