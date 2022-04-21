@@ -10,28 +10,22 @@
 #include "private.h" //file containing your ssid password and OTApassword
 //end of OTA stuff
 
-#define tempPin 100
+#include "Webserver.h"
+
+WebServer theWebserver;
 #define relaisPin 101
-#define tempMultiplyer 200
-#define tempOfset 300
 #define DESIRED_CENTI_TEMP 400
+// Data wire is plugged into pin 2
+#define ONE_WIRE_BUS 2
 
 uint32_t loopMillis;
 
-
-
-
-// Data wire is plugged into pin 2 on the Arduino
-#define ONE_WIRE_BUS 2
-/********************************************************************/
-// Setup a oneWire instance to communicate with any OneWire devices
-// (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
-/********************************************************************/
-
-/********************************************************************/
 TempMeter18b20 myTempSensor = TempMeter18b20(&oneWire);
 Brains myBrains = Brains(relaisPin, DESIRED_CENTI_TEMP,myTempSensor);
+
+
+
 void setup() {
 
     Serial.begin(115200);
@@ -45,6 +39,9 @@ void setup() {
         delay(5000);
         ESP.restart();
     }
+    Serial.println("Ready");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
 
     // Port defaults to 8266
     ArduinoOTA.setPort(8266);
@@ -90,9 +87,9 @@ void setup() {
             Serial.println("End Failed");
     });
     ArduinoOTA.begin();
-    Serial.println("Ready");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
+
+    theWebserver.setup();
+
 
     loopMillis = millis();
 
@@ -104,6 +101,7 @@ void setup() {
 void loop() {
     loopMillis = millis();
     ArduinoOTA.handle();
+    theWebserver.loop();
     myTempSensor.loop();
     myBrains.loop();
     static uint32_t last_log = 0;

@@ -14,7 +14,11 @@ public:
     TempMeter18b20(OneWire *oneWire);
     void setup();
     void loop();
+    float getTempC(){return myTempC;};
+    float getTempF(){return myTempF;};
 private:
     OneWire *myOneWire;
     uint32_t myLastAction;
+    float myTempC;
+    float myTempF;
 };
