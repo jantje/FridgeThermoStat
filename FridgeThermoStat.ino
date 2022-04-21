@@ -13,10 +13,10 @@
 #include "Webserver.h"
 
 WebServer theWebserver;
-#define relaisPin 101
+#define relaisPin D8
 #define DESIRED_CENTI_TEMP 400
 // Data wire is plugged into pin 2
-#define ONE_WIRE_BUS 2
+#define ONE_WIRE_BUS D2
 
 uint32_t loopMillis;
 
