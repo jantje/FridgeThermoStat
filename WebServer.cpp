@@ -7,11 +7,13 @@
 #include "WebServer.h"
 #include "TempMeter18b20.h"
 #include <ESP8266mDNS.h>
+
 extern TempMeter18b20 myTempSensor;
 extern WebServer theWebserver;
+extern Brains myBrains;
 
-
-const char index_html[] PROGMEM = R"rawliteral(
+const char index_html[] PROGMEM
+        = R"rawliteral(
 <!DOCTYPE HTML><html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -34,103 +36,89 @@ const char index_html[] PROGMEM = R"rawliteral(
   </style>
 </head>
 <body>
-  <h2>ESP DS18B20 Server</h2>
+  <h2>Fridge manager</h2>
   <p>
     <i class="fas fa-thermometer-half" style="color:#059e8a;"></i>
     <span class="ds-labels">Temperature Celsius</span>
-    <span id="temperaturec">%TEMPERATUREC%</span>
+    <span id="temperature">%TEMPERATURE%</span>
     <sup class="units">&deg;C</sup>
   </p>
   <p>
-    <i class="fas fa-thermometer-half" style="color:#059e8a;"></i>
-    <span class="ds-labels">Temperature Fahrenheit</span>
-    <span id="temperaturef">%TEMPERATUREF%</span>
-    <sup class="units">&deg;F</sup>
+    <i class="fas fa-repeat fa-1" aria-hidden="true"></i>
+    <span class="ds-labels">Cooling</span>
+    <span id="cooling">%COOLING%</span>
+  </p>
+  <p>
+    <span class="ds-labels">On time </span>
+    <span id="OnTime">%ONTIME%</span>
+    <sup class="units">HHHH:MM:SS</sup>
+  </p>
+  <p>
+    <span class="ds-labels">Running Time </span>
+    <span id="RunTime">%RUNTIME%</span>
+    <sup class="units">HHHH:MM:SS</sup>
   </p>
 </body>
 <script>
-setInterval(function ( ) {
+setInterval(update, 10000) ;
+
+function update(  ) {
+    updateValue("temperature","/temperature")
+    updateValue("cooling","/cooling")
+    updateValue("OnTime","/OnTime")
+    updateValue("RunTime","/RunTime")
+}
+
+
+function updateValue( field,url ) {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
-      document.getElementById("temperaturec").innerHTML = this.responseText;
+      document.getElementById(field).innerHTML = this.responseText;
     }
   };
-  xhttp.open("GET", "/temperaturec", true);
+  xhttp.open("GET", url, true);
   xhttp.send();
-}, 10000) ;
-setInterval(function ( ) {
-  var xhttp = new XMLHttpRequest();
-  xhttp.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-      document.getElementById("temperaturef").innerHTML = this.responseText;
-    }
-  };
-  xhttp.open("GET", "/temperaturef", true);
-  xhttp.send();
-}, 10000) ;
+}
 </script>
 </html>)rawliteral";
 
-// Replaces placeholder with DS18B20 values
-void processorProxy(){
-    Serial.println("Recieved processorProxy");
-    theWebserver.processor("TEMPERATUREC");
+void proxyMainPage() {
+    theWebserver.sendMainPage();
 }
-void proxyTemperatureC(){
-    Serial.println("Recieved proxyTemperatureC");
-    theWebserver.temperatureC();
+void proxyTemperature() {
+    theWebserver.sendTemperature();
 }
-void proxyTemperatureF(){
-    Serial.println("Recieved proxyTemperatureF");
-    theWebserver.temperatureF();
+void proxyOnTime() {
+    theWebserver.sendOnTime();
+}
+void proxyRunTime() {
+    theWebserver.sendRunTime();
+}
+void proxyCooling() {
+    theWebserver.sendCooling();
 }
 void proxyHandleNotFound() {
     Serial.println("Recieved proxyHandleNotFound");
-        theWebserver.handleNotFound();
-}
-void WebServer::handleNotFound() {
-  String message = "File Not Found\n\n";
-  message += "URI: ";
-  message += myServer.uri();
-  message += "\nMethod: ";
-  message += (myServer.method() == HTTP_GET) ? "GET" : "POST";
-  message += "\nArguments: ";
-  message += myServer.args();
-  message += "\n";
-
-  for (uint8_t i = 0; i < myServer.args(); i++) {
-    message += " " + myServer.argName(i) + ": " + myServer.arg(i) + "\n";
-  }
-
-  myServer.send(404, "text/plain", message);
-}
-
-void WebServer::processor(const String& var){
-    myServer.send(200, "text/html", index_html);
-//  //Serial.println(var);
-//  if(var == "TEMPERATUREC"){
-//      myServer.send(200, "text/html", getTemperatureC());
-//  }
-//  else if(var == "TEMPERATUREF"){
-//      myServer.send(200, "text/html", getTemperatureF());
-//  }
-//  myServer.send(200, "text/html", "unsupported temp format");
+    theWebserver.sendHandleNotFound();
 }
 
 
-
-WebServer::WebServer():myServer(80) {
+WebServer::WebServer() :
+        myServer(80) {
 }
 
 void WebServer::setup() {
     if (MDNS.begin("frigo")) {
-      Serial.println("MDNS responder started");
+        Serial.println("MDNS responder started");
     }
 
-    myServer.on("/", processorProxy);
-    myServer.on("/temperaturec", proxyTemperatureC);
-    myServer.on("/temperaturef", proxyTemperatureF);
+    myServer.on("/", proxyMainPage);
+    myServer.on("/temperature", proxyTemperature);
+    myServer.on("/cooling", proxyCooling);
+    myServer.on("/OnTime", proxyOnTime);
+    myServer.on("/RunTime", proxyRunTime);
+
     myServer.onNotFound(proxyHandleNotFound);
 
     myServer.begin();
@@ -139,17 +127,58 @@ void WebServer::setup() {
 
 void WebServer::loop() {
     myServer.handleClient();
-    if(myLastTempC!=myTempSensor.getTempC()){
-        myLastTempC=myTempSensor.getTempC();
-        myTemperatureC=String(myLastTempC);
-        myTemperatureF=String(myTempSensor.getTempF());
+}
+
+void WebServer::sendHandleNotFound() {
+    String message = "File Not Found\n\n";
+    message += "URI: ";
+    message += myServer.uri();
+    message += "\nMethod: ";
+    message += (myServer.method() == HTTP_GET) ? "GET" : "POST";
+    message += "\nArguments: ";
+    message += myServer.args();
+    message += "\n";
+
+    for (uint8_t i = 0; i < myServer.args(); i++) {
+        message += " " + myServer.argName(i) + ": " + myServer.arg(i) + "\n";
+    }
+
+    myServer.send(404, "text/plain", message);
+}
+
+void WebServer::sendMainPage() {
+    myServer.send(200, "text/html", index_html);
+    sendTemperature();
+}
+
+void WebServer::sendTemperature() {
+    myServer.send(200, "text/plain", String( myTempSensor.getTemp()));
+}
+
+void WebServer::sendCooling() {
+    if (myBrains.isFridgeOn()) {
+        myServer.send(200, "text/plain", "ON");
+    } else {
+        myServer.send(200, "text/plain", "OFF");
     }
 }
 
-void WebServer::temperatureC() {
-    myServer.send(200, "text/plain", getTemperatureC());
+char * TimeToString(uint32_t tm)
+{
+  static char str[12];
+  uint32_t t=tm/1000;
+  long h = t / 3600;
+  t = t % 3600;
+  int m = t / 60;
+  int s = t % 60;
+  sprintf(str, "%04ld:%02d:%02d", h, m, s);
+  return str;
 }
 
-void WebServer::temperatureF() {
-    myServer.send(200, "text/plain", getTemperatureF());
+void WebServer::sendRunTime() {
+    myServer.send(200, "text/plain", String( TimeToString(loopMillis)));
+}
+
+void WebServer::sendOnTime() {
+    myServer.send(200, "text/plain", String( TimeToString(myBrains.getOnTime())));
 }

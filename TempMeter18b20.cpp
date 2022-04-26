@@ -13,7 +13,7 @@ DallasTemperature *mySensors=NULL;
 
 TempMeter18b20::TempMeter18b20(OneWire *oneWire) {
     myOneWire=oneWire;
-    myTempC=myTempF=0;
+    myTemp=0;
     myLastAction=0;
     if (mySensors==NULL){
         mySensors=new DallasTemperature(oneWire);
@@ -29,12 +29,10 @@ void TempMeter18b20::loop() {
         myLastAction = loopMillis;
         uint32_t startTime =millis();
         mySensors->requestTemperatures(); // Send the command to get temperature readings
-            myTempC = mySensors->getTempCByIndex(0);
-            myTempF = mySensors->getTempFByIndex(0);
-            myCentiCelsius=myTempC*100;
+            myTemp = mySensors->getTempCByIndex(0);
+            myCentiCelsius=myTemp*100;
 
-
-            Serial.print("Reading tempsensor took ");
+            Serial.print("Reading temp sensor took ");
             Serial.println(millis()-startTime);
     }
 }
