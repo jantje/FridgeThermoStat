@@ -9,12 +9,10 @@ public:
     void setup();
     void loop();
 
-    void sendTemperature();
-    void sendCooling();
-    void sendHandleNotFound();
-    void sendOnTime();
-    void sendRunTime();
-    void sendMainPage();
+    void sendPlain(const char * text);
+    void sendHTML(const char * text);
+    void sendError(const char * text);
+
 private:
     ESP8266WebServer myServer;
     float myLastTemp=0;

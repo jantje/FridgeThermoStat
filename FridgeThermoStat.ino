@@ -14,7 +14,9 @@
 
 WebServer theWebserver;
 #define relaisPin D8
-#define DESIRED_CENTI_TEMP 400
+//the 2 values below should give us a temperature between 4° and 3,5° celcius
+#define DESIRED_CENTI_TEMP 375
+#define HYSTERESIS_CENTI_TEMP 25
 // Data wire is plugged into pin 2
 #define ONE_WIRE_BUS D2
 
@@ -22,7 +24,7 @@ uint32_t loopMillis;
 
 OneWire oneWire(ONE_WIRE_BUS);
 TempMeter18b20 myTempSensor = TempMeter18b20(&oneWire);
-Brains myBrains = Brains(relaisPin, DESIRED_CENTI_TEMP,myTempSensor);
+Brains myBrains = Brains(relaisPin, DESIRED_CENTI_TEMP,HYSTERESIS_CENTI_TEMP,myTempSensor);
 
 
 

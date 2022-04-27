@@ -8,12 +8,13 @@
 #include "Brains.h"
 #include "TempMeterInterface.h"
 
-Brains::Brains(uint8_t relaisPin, uint16_t desiredcentiTemp, TempMeterInterface &tempSensor) :
+Brains::Brains(uint8_t relaisPin,uint16_t desiredcentiTemp,uint16_t hysteresiscentiTemp,TempMeterInterface &tempSensor):
         myTempSensor(tempSensor) {
     myRelaisPin = relaisPin;
     myMotorState = LOW;
     myLastSwitch = 0;
     myDesiredcentiTemp = desiredcentiTemp;
+    myHysteresiscentiTemp= hysteresiscentiTemp;
 }
 
 void Brains::setup() {
@@ -28,6 +29,9 @@ void Brains::loop() {
     if (myTempSensor.getCentiCelsius() > myDesiredcentiTemp) {
         newMotorState = HIGH;
     }
+    if(abs((int)myTempSensor.getCentiCelsius() - (int)myDesiredcentiTemp)<=myHysteresiscentiTemp){
+        newMotorState=myMotorState;
+    }
     if (newMotorState != myMotorState) {
         if ((loopMillis - myLastSwitch > (1000 * 60 * 3)) || (myLastSwitch == 0)) {
             if (myMotorState == HIGH) {
@@ -38,6 +42,14 @@ void Brains::loop() {
             myMotorState = newMotorState;
             digitalWrite(myRelaisPin, myMotorState);
         }
+    }
+}
+
+uint32_t Brains::getOnTime() {
+    if (myMotorState == HIGH) {
+        return myTotalOnTime + (loopMillis - myLastSwitch);
+    } else {
+        return myTotalOnTime;
     }
 }
 

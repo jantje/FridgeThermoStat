@@ -83,24 +83,59 @@ function updateValue( field,url ) {
 </script>
 </html>)rawliteral";
 
+char * TimeToString(uint32_t tm)
+{
+  static char str[12];
+  uint32_t t=tm/1000;
+  long h = t / 3600;
+  t = t % 3600;
+  int m = t / 60;
+  int s = t % 60;
+  sprintf(str, "%04ld:%02d:%02d", h, m, s);
+  return str;
+}
+
+
 void proxyMainPage() {
-    theWebserver.sendMainPage();
+    theWebserver.sendHTML(index_html);
 }
 void proxyTemperature() {
-    theWebserver.sendTemperature();
+    static char strTemp[7];
+    float temp=myTempSensor.getTemp();
+    dtostrf(temp, 6, 2, strTemp);
+    theWebserver.sendPlain( strTemp);
 }
+
 void proxyOnTime() {
-    theWebserver.sendOnTime();
+    theWebserver.sendPlain( TimeToString(myBrains.getOnTime()));
 }
 void proxyRunTime() {
-    theWebserver.sendRunTime();
+    theWebserver.sendPlain( TimeToString(loopMillis));
 }
 void proxyCooling() {
-    theWebserver.sendCooling();
+    if (myBrains.isFridgeOn()) {
+        theWebserver.sendPlain( "ON");
+    } else {
+        theWebserver.sendPlain( "OFF");
+    }
 }
 void proxyHandleNotFound() {
-    Serial.println("Recieved proxyHandleNotFound");
-    theWebserver.sendHandleNotFound();
+//    String message = "File Not Found\n\n";
+//    message += "URI: ";
+//    message += myServer.uri();
+//    message += "\nMethod: ";
+//    message += (myServer.method() == HTTP_GET) ? "GET" : "POST";
+//    message += "\nArguments: ";
+//    message += myServer.args();
+//    message += "\n";
+//
+//    for (uint8_t i = 0; i < myServer.args(); i++) {
+//        message += " " + myServer.argName(i) + ": " + myServer.arg(i) + "\n";
+//    }
+//
+//    myServer.send(404, "text/plain", message);
+    const char * message = "File Not Found";
+    theWebserver.sendError(message);
 }
 
 
@@ -129,56 +164,19 @@ void WebServer::loop() {
     myServer.handleClient();
 }
 
-void WebServer::sendHandleNotFound() {
-    String message = "File Not Found\n\n";
-    message += "URI: ";
-    message += myServer.uri();
-    message += "\nMethod: ";
-    message += (myServer.method() == HTTP_GET) ? "GET" : "POST";
-    message += "\nArguments: ";
-    message += myServer.args();
-    message += "\n";
 
-    for (uint8_t i = 0; i < myServer.args(); i++) {
-        message += " " + myServer.argName(i) + ": " + myServer.arg(i) + "\n";
-    }
 
-    myServer.send(404, "text/plain", message);
+
+
+
+void WebServer::sendHTML(const char * text) {
+    myServer.send(200, "text/html", text);
 }
 
-void WebServer::sendMainPage() {
-    myServer.send(200, "text/html", index_html);
-    sendTemperature();
+void WebServer::sendPlain(const char *text) {
+    myServer.send(200, "text/plain",text);
 }
 
-void WebServer::sendTemperature() {
-    myServer.send(200, "text/plain", String( myTempSensor.getTemp()));
-}
-
-void WebServer::sendCooling() {
-    if (myBrains.isFridgeOn()) {
-        myServer.send(200, "text/plain", "ON");
-    } else {
-        myServer.send(200, "text/plain", "OFF");
-    }
-}
-
-char * TimeToString(uint32_t tm)
-{
-  static char str[12];
-  uint32_t t=tm/1000;
-  long h = t / 3600;
-  t = t % 3600;
-  int m = t / 60;
-  int s = t % 60;
-  sprintf(str, "%04ld:%02d:%02d", h, m, s);
-  return str;
-}
-
-void WebServer::sendRunTime() {
-    myServer.send(200, "text/plain", String( TimeToString(loopMillis)));
-}
-
-void WebServer::sendOnTime() {
-    myServer.send(200, "text/plain", String( TimeToString(myBrains.getOnTime())));
+void WebServer::sendError(const char * text){
+    myServer.send(404, "text/plain",text);
 }
